@@ -1,61 +1,67 @@
 use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    fs::File,
-    io::{self, BufRead},
-    path::Path
+    collections::HashMap,
+    error::Error, fs::File, io::{self, BufRead}
 };
-use indicatif::{ProgressBar, ProgressStyle};
 use walkdir::{DirEntry, WalkDir};
+use indicatif::{ProgressBar, ProgressStyle};
+use colored::*;
 
-pub fn run() -> Result<(), Box<dyn Error>> {
-    let entries = get_entries(".")?;
+use config::Tracked;
+pub mod config;
 
-    let composition_hashmap = count_lines(entries)?;
+pub fn run(config: config::Config) -> Result<(), Box<dyn Error>>{
+    let directory_entries = get_directory_entries(&config);
 
-    display_composition(composition_hashmap);
+    let composition_hashmap = get_composition(directory_entries)?;
+
+    display_composition(composition_hashmap, &config);
     Ok(())
 }
 
-fn display_composition(composition_hashmap: HashMap<String, usize>) {
-    let total_lines: usize = composition_hashmap.values().sum();
+fn get_directory_entries(config: &config::Config) -> Vec<DirEntry> {
+    let ignored_directories = config::get_ignored_directories();
+    let ignored_files = config::get_ignored_files();
 
-    let mut sorted_entries: Vec<(String, usize)> = composition_hashmap.into_iter().collect();
-    sorted_entries.sort_by(|a, b| b.1.cmp(&a.1));
+    let entries: Vec<DirEntry> = WalkDir::new(&config.root)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|entry| {
+            let path = entry.path();
 
-    for (ext, line_count) in sorted_entries {
-        if line_count != 0 {
-            let percentage: f64 = (line_count as f64 / total_lines as f64) * 100.0;
-            println!("{} : {} lines [{:.2}%]", ext, line_count ,percentage);
-        }
-    }
+            !path.ancestors().any(|ancestor| {
+                ignored_directories.contains(ancestor.file_name().unwrap_or_default().to_str().unwrap_or_default())
+            }) &&
+            !ignored_files.contains(path.file_name().unwrap_or_default().to_str().unwrap_or_default())
+        })
+        .collect();
+
+    entries
 }
 
-fn count_lines(entries: Vec<DirEntry>) -> Result<HashMap<String, usize>, Box<dyn Error>> {
-    let extensions: HashSet<&str> = [
-        "rs", "toml", "html", "css", "js", "ts", "svelte",
-        "c", "cpp", "cs", "bash", "java", "py", "ipynb",
-        "md", "asm", "go"
-    ].into();
+fn get_composition(directory_entries: Vec<DirEntry>) -> Result<HashMap<&'static Tracked, usize>, Box<dyn Error>> {
+    let mut composition_hashmap: HashMap<&Tracked, usize> = config::get_tracked_extensions()
+        .into_iter()
+        .map(|tracked| (tracked, 0))
+        .collect();
 
-    let mut composition_hashmap = HashMap::new();
-    composition_hashmap.extend(extensions.iter().map(|&ext| (ext.to_string(), 0)));
-
-    let progress_bar = ProgressBar::new(entries.len() as u64);
+    let progress_bar = ProgressBar::new(directory_entries.len() as u64);
     progress_bar.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:..green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len}")?
             .progress_chars("#>-"),
     );
 
-    for entry in entries {
+    for entry in directory_entries {
         let path = entry.path();
         progress_bar.inc(1);
 
         if path.is_file() {
             if let Some(ext) = path.extension().and_then(|ext| ext.to_str()) {
-                if let Some(line_count) = composition_hashmap.get_mut(ext) {
-                    *line_count += get_lines_in_file(path)?;
+                if let Some((_tracked, line_count)) = composition_hashmap.iter_mut().find(|(&tracked , _)| tracked.ext == ext.to_string()) {
+                    let file = File::open(path)?;
+                    let reader = io::BufReader::new(file);
+
+                    *line_count += reader.lines().count()
                 }
             }
         }
@@ -65,33 +71,31 @@ fn count_lines(entries: Vec<DirEntry>) -> Result<HashMap<String, usize>, Box<dyn
     Ok(composition_hashmap)
 }
 
-fn get_entries(root: &str) -> Result<Vec<DirEntry>, Box<dyn Error>> {
-    let ignored_directories: HashSet<&str> = [
-        ".git", "__venv__", "node_modules", "target", "__pycache__", ".svelte-kit",
-        ".next", "build", ".expo", ".idea", "venv",
-    ].into();
+fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, config: &config::Config) {
+    let total_lines: usize = composition_hashmap.values().sum();
 
-    let ignored_files: HashSet<&str> = [
-        "package-lock.json"
-    ].into();
-
-    let entries: Vec<DirEntry> = WalkDir::new(root)
+    let mut sorted_entries: Vec<(&Tracked, usize, f32)> = composition_hashmap
         .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|entry| {
-            !entry.path().ancestors().any(|ancestor| {
-                ignored_directories.contains(ancestor.file_name().unwrap_or_default().to_str().unwrap_or_default())
-            }) &&
-            !ignored_files.contains(entry.path().file_name().unwrap_or_default().to_str().unwrap_or_default())
+        .map(|entry| {
+            let percentage: f32 = (entry.1 as f32) / (total_lines as f32) * 100.0;
+            (entry.0, entry.1, percentage)
         })
         .collect();
+    sorted_entries.sort_by(|a, b| b.1.cmp(&a.1));
 
-    Ok(entries)
-}
+    for (tracked, line_count, percentage) in sorted_entries {
+        if line_count == 0 {
+            continue;
+        }
 
-fn get_lines_in_file(path: &Path) -> io::Result<usize> {
-    let file = File::open(path)?;
-    let reader = io::BufReader::new(file);
+        let bar_width = (percentage / &config.minify).round() as usize;
 
-    Ok(reader.lines().count())
+        let color = Color::TrueColor {
+            r: tracked.color.0,
+            g: tracked.color.1,
+            b: tracked.color.2,
+        };
+        let bar = "█".repeat(bar_width).color(color);
+        println!("{:<10} | {:>10} lines | {:>5.2}% | {}", tracked.display, line_count, percentage, bar);
+    }
 }

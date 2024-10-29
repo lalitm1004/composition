@@ -9,7 +9,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use walkdir::{DirEntry, WalkDir};
 
 pub fn run() -> Result<(), Box<dyn Error>> {
-    
     let entries = get_entries(".")?;
 
     let composition_hashmap = count_lines(entries)?;
@@ -29,14 +28,14 @@ fn display_composition(composition_hashmap: HashMap<String, usize>) {
             let percentage: f64 = (line_count as f64 / total_lines as f64) * 100.0;
             println!("{} : {} lines [{:.2}%]", ext, line_count ,percentage);
         }
-    } 
+    }
 }
 
 fn count_lines(entries: Vec<DirEntry>) -> Result<HashMap<String, usize>, Box<dyn Error>> {
     let extensions: HashSet<&str> = [
         "rs", "toml", "html", "css", "js", "ts", "svelte",
         "c", "cpp", "cs", "bash", "java", "py", "ipynb",
-        "md",
+        "md", "asm", "go"
     ].into();
 
     let mut composition_hashmap = HashMap::new();
@@ -46,7 +45,7 @@ fn count_lines(entries: Vec<DirEntry>) -> Result<HashMap<String, usize>, Box<dyn
     progress_bar.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:..green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len}")?
-            .progress_chars("#>-"),  
+            .progress_chars("#>-"),
     );
 
     for entry in entries {

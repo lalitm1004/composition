@@ -12,7 +12,7 @@ impl Config{
         let mut minify: f32 = 1.0;
 
         let mut args_iter = args.iter().skip(1);
-        
+
         while let Some(arg) = args_iter.next() {
             match arg.as_str() {
                 "--minify" => {
@@ -72,6 +72,10 @@ static IGNORED_FILES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ].into()
 });
 
+static COLORED_COMPOSITION_BAR: Lazy<bool> = Lazy::new(|| {
+    true
+});
+
 pub fn get_tracked_extensions() -> &'static Vec<Tracked> {
     &TRACKED_EXTENSIONS
 }
@@ -82,4 +86,8 @@ pub fn get_ignored_directories() -> &'static HashSet<&'static str> {
 
 pub fn get_ignored_files() -> &'static HashSet<&'static str> {
     &IGNORED_FILES
+}
+
+pub fn get_colored_composition_bar() -> &'static bool {
+    &COLORED_COMPOSITION_BAR
 }

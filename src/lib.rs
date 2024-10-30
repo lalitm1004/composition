@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
-    error::Error, fs::File, io::{self, BufRead}
+    error::Error,
+    fs::File,
+    io::{self, BufRead}
 };
 use walkdir::{DirEntry, WalkDir};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -90,12 +92,17 @@ fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, co
 
         let bar_width = (percentage / &config.minify).round() as usize;
 
-        let color = Color::TrueColor {
-            r: tracked.color.0,
-            g: tracked.color.1,
-            b: tracked.color.2,
-        };
-        let bar = "█".repeat(bar_width).color(color);
+        let mut bar = "█".repeat(bar_width);
+
+        if *config::get_colored_composition_bar() {
+            let color = Color::TrueColor {
+                r: tracked.color.0,
+                g: tracked.color.1,
+                b: tracked.color.2,
+            };
+            bar = bar.color(color).to_string();
+        }
+
         println!("{:<10} | {:>10} lines | {:>5.2}% | {}", tracked.display, line_count, percentage, bar);
     }
 }

@@ -8,7 +8,7 @@ pub struct Config {
 
 impl Config{
     pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        let mut root = String::new();
+        let mut root = String::from(".");
         let mut minify: f32 = 1.0;
 
         let mut args_iter = args.iter().skip(1);

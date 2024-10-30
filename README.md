@@ -59,6 +59,8 @@ C          |          1 lines |  0.01% |
 
         // the same for files you want to ignore, just edit IGNORED_FILES
         ```
+    - **Modify preference for colored composition bar:**
+        Edit the `static COLORED_COMPOSITION_BAR` to either `true/false` as per your requirements.
 3. Build using `cargo build --release`. You can now place your built `.exe` into your PATH like i did or just do whatever 🤷‍♀️.
 
 ## Usage

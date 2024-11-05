@@ -85,6 +85,19 @@ fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, co
         .collect();
     sorted_entries.sort_by(|a, b| b.1.cmp(&a.1));
 
+    let max_display_width = sorted_entries
+        .iter()
+        .filter(|(_, line_count, _)| *line_count != 0)
+        .map(|(tracked, _, _)| tracked.display.len())
+        .max()
+        .unwrap_or(10);
+
+    let max_lines_width = sorted_entries
+        .iter()
+        .map(|(_, line_count, _)| line_count.to_string().len())
+        .max()
+        .unwrap_or(10);
+
     for (tracked, line_count, percentage) in sorted_entries {
         if line_count == 0 {
             continue;
@@ -103,6 +116,14 @@ fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, co
             bar = bar.color(color).to_string();
         }
 
-        println!("{:<10} | {:>10} lines | {:>5.2}% | {}", tracked.display, line_count, percentage, bar);
+        println!(
+            "{:<width_display$} | {:>width_lines$} lines | {:>5.2}% | {}",
+            tracked.display,
+            line_count,
+            percentage,
+            bar,
+            width_display= max_display_width,
+            width_lines = max_lines_width,
+        );
     }
 }

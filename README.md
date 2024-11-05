@@ -9,16 +9,15 @@ Composition is a simple CLI tool that helps you understand your codebase better 
 ## Example
 ```bash
 $ composition exampleEnv/
-Python     |       2446 lines | 24.42% | ████████████████████████
-Svelte     |       2254 lines | 22.50% | ███████████████████████
-TypeScript |       1850 lines | 18.47% | ██████████████████
-CSS        |       1594 lines | 15.91% | ████████████████
-JavaScript |       1010 lines | 10.08% | ██████████
-HTML       |        626 lines |  6.25% | ██████
-Rust       |        225 lines |  2.25% | ██
-Go         |         11 lines |  0.11% |
-C          |          1 lines |  0.01% |
-
+Python     | 2446 lines | 24.42% | ████████████████████████
+Svelte     | 2254 lines | 22.50% | ███████████████████████
+TypeScript | 1850 lines | 18.47% | ██████████████████
+CSS        | 1594 lines | 15.91% | ████████████████
+JavaScript | 1010 lines | 10.08% | ██████████
+HTML       | 626 lines  |  6.25% | ██████
+Rust       | 225 lines  |  2.25% | ██
+Go         | 11 lines   |  0.11% |
+C          | 1 lines    |  0.01% |
 ```
 
 ## Build
@@ -67,11 +66,11 @@ C          |          1 lines |  0.01% |
 Run composition with a target directory path:
 ```bash
 $ composition GitRepos/composition
-Rust       |        202 lines | 100.00% | █████████████████████████████████████████████
+Rust | 202 lines | 100.00% | █████████████████████████████████████████████
 ```
 Bar too big? just pass in a minify value like so:
 ```bash
 $ compsition GitRepos/composition --minify 2
-Rust       |        202 lines | 100.00% | █████████████████████████
+Rust | 202 lines | 100.00% | █████████████████████████
 ```
 (you can use this to magnify aswell)

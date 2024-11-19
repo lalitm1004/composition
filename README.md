@@ -4,7 +4,7 @@ Composition is a simple CLI tool that helps you understand your codebase better 
 ## Features
 - **Total Lines by Language:** Know exactly how many lines you've written per language.
 - **Easy Visualization:** Easily wrap your head around the percentage contribution of each language via the handy contribution bar.
-- **Fully customizable:** Add file extensions you want to track, ignore directories like `.git` and `node_module` and whatever you choose.
+- **Fully customizable:** Add file extensions you want to track, ignore directories like `.git` and `node_modules` and whatever you choose.
 
 ## Example
 ```bash
@@ -26,51 +26,53 @@ C          | 1 lines    |  0.01% |
    git clone https://github.com/lalitm1004/composition.git
    cd composition
    ```
-2. **[Optional]** Edit `src/config.rs` to track other extensions / ignore directories & files.
+2. **[Optional]** Edit `src/settings.rs` to track other extensions / ignore directories & files.
     - **Modify tracked extensions:**
-        Edit the `static TRACKED_EXTENSIONS` constant to add/remove extensions.
+        Edit the `public fn get_tracked_extensions()` to add/remove extensions.
         ```rs
-        pub struct Tracked {
-            pub ext: &'static str, // the extension of the file you want to track (currently doesnt support aliases)
-            pub display: &'static str, // the display name
-            pub color: &'static (u8, u8, u8), // the RGB color of the contribution bar
-        }
+        fn new(
+            display: &'static str, // The display name [must be unique]
+            extensions: Vec<&'static str>, // Vector of all extensions to track
+            color: &'static str // Hex code of color value for contribution bar
+        ) -> Self {}
 
-        static TRACKED_EXTENSIONS: Lazy<Vec<Tracked>> = Lazy::new(|| {
+        pub fn get_tracked_extensions() -> Vec<Tracked> {
             vec![
-                Tracked { ext: "rs", display: "Rust", color: &(246, 82, 9) },
-                Tracked { ext: "html", display: "HTML", color: &(241, 106, 48) },
-                //...
-                // Add a Tracked struct here or remove previous entries.
-            ].into();
-        });
+                Tracked::new("Rust", vec!["rs"], "#F85009"),
+                Tracked::new("Python", vec!["py", "ipynb"], "#3772A3"),
+                // Tracked::new("DisplayName", vec!["Ext1", "Ext2"], "#ColorHex"),
+            ]
+        }
         ```
     - **Modify ignored directories/files:**
-        Edit the `static IGNORED_DIRECTORIES` or `static IGNORED_FILES` as per your requirements.
+        Edit the `pub fn get_ignored_directories()` or `pub fn get_ignored_files()` as per your requirements.
         ```rs
-        static IGNORED_DIRECTORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-            [
-                ".git", "__venv__", "node_modules", "target", "__pycache__",
-                ".next", "build", ".expo", ".idea", "venv", ".svelete-kit",
-                // add directory to ignore here or remove previous entries
-            ].into()
-        });
+        pub fn get_ignored_directories() -> Vec<&'static str> {
+            vec![
+                ".git", "__venv__", ".venv", "venv", "__pycache__", "target", "node_modules",
+                ".next", ".expo", ".idea", ".svelte-kit",
+                // append more
+            ]
+        }
 
-        // the same for files you want to ignore, just edit IGNORED_FILES
+        // the same for files you want to ignore, just edit get_ignored_files()
         ```
     - **Modify preference for colored composition bar:**
-        Edit the `static COLORED_COMPOSITION_BAR` to either `true/false` as per your requirements.
+        Edit the `color` argument under `pub struct Cli` to either `true/false` as per your requirements.
+
 3. Build using `cargo build --release`. You can now place your built `.exe` into your PATH like i did or just do whatever 🤷‍♀️.
 
 ## Usage
-Run composition with a target directory path:
+- Run composition with a target directory path:
 ```bash
 $ composition GitRepos/composition
-Rust | 202 lines | 100.00% | █████████████████████████████████████████████
+Rust | 282 lines | 100.00% | ██████████████████████████████████████████████████
 ```
-Bar too big? just pass in a minify value like so:
+
+- Scale bar at runtime using `--scale-bar` argument 
 ```bash
-$ compsition GitRepos/composition --minify 2
-Rust | 202 lines | 100.00% | █████████████████████████
+$ compsition GitRepos/composition --scale-bar 0.5
+Rust | 282 lines | 100.00% | █████████████████████████
 ```
-(you can use this to magnify aswell)
+
+- Enable color at runtime using `-c` or `--color` flag.

@@ -1,15 +1,10 @@
-use std::{env, process};
-use composition::config::Config;
+use std::process;
+use composition::settings;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args = settings::build_args();
 
-    let config = Config::build(&args).unwrap_or_else(|err| {
-        eprintln!("ERROR: {err}");
-        process::exit(1);
-    });
-
-    if let Err(err) = composition::run(config) {
+    if let Err(err) = composition::run(args) {
         eprintln!("ERROR: {err}");
         process::exit(1);
     }

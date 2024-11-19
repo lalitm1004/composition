@@ -1,94 +1,147 @@
 use std::{
-    collections::HashMap,
+    fs,
+    thread,
+    path::Path,
     error::Error,
-    fs::File,
-    io::{self, BufRead}
+    time::Duration,
+    io::{self, BufRead, Write},
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
-use walkdir::{DirEntry, WalkDir};
-use indicatif::{ProgressBar, ProgressStyle};
 use colored::*;
+use settings::Tracked;
 
-use config::Tracked;
-pub mod config;
+pub mod settings;
 
-pub fn run(config: config::Config) -> Result<(), Box<dyn Error>>{
-    let directory_entries = get_directory_entries(&config);
+pub fn run(args: settings::Cli) -> Result<(), Box<dyn Error>> {
+    let mut composition_hashmap: HashMap<String, usize> = HashMap::new();
+    let tracked_extensions = settings::get_tracked_extensions();
+    let ignored_directories = settings::get_ignored_directories();
+    let ignored_files = settings::get_ignored_files();
 
-    let composition_hashmap = get_composition(directory_entries)?;
+    let spinner_running = Arc::new(AtomicBool::new(true));
+    let spinner_handle = {
+        let spinner_running = Arc::clone(&spinner_running);
+        thread::spawn(move || {
+            let spinner_chars = ['|', '/', '-', '\\'];
+            let mut index = 0;
 
-    display_composition(composition_hashmap, &config);
+            while spinner_running.load(Ordering::SeqCst) {
+                print!("\rwalking directory... {}", spinner_chars[index]);
+                io::stdout().flush().unwrap();
+                index = (index + 1) % spinner_chars.len();
+                thread::sleep(Duration::from_millis(100));
+            }
+
+            // Clear spinner after completion
+            print!("\r{} \r", " ".repeat(20));
+            io::stdout().flush().unwrap();
+        })
+    };
+
+    walk_directory(
+        &args.path,
+        &tracked_extensions,
+        &mut composition_hashmap,
+        &ignored_directories,
+        &ignored_files,
+    )?;
+
+    spinner_running.store(false, Ordering::SeqCst);
+    spinner_handle.join().unwrap();
+
+    display_composition(
+        &tracked_extensions,
+        &composition_hashmap,
+        args,
+    );
     Ok(())
 }
 
-fn get_directory_entries(config: &config::Config) -> Vec<DirEntry> {
-    let ignored_directories = config::get_ignored_directories();
-    let ignored_files = config::get_ignored_files();
+fn walk_directory(
+    path: &Path,
+    tracked_extensions: &Vec<Tracked>,
+    composition_hashmap: &mut HashMap<String, usize>,
+    ignored_directories: &Vec<&'static str>,
+    ignored_files: &Vec<&'static str>,
+) -> Result<(), Box<dyn Error>> {
 
-    let entries: Vec<DirEntry> = WalkDir::new(&config.root)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|entry| {
-            let path = entry.path();
+    if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            let entry_path = entry.path();
 
-            !path.ancestors().any(|ancestor| {
-                ignored_directories.contains(ancestor.file_name().unwrap_or_default().to_str().unwrap_or_default())
-            }) &&
-            !ignored_files.contains(path.file_name().unwrap_or_default().to_str().unwrap_or_default())
-        })
-        .collect();
-
-    entries
-}
-
-fn get_composition(directory_entries: Vec<DirEntry>) -> Result<HashMap<&'static Tracked, usize>, Box<dyn Error>> {
-    let mut composition_hashmap: HashMap<&Tracked, usize> = config::get_tracked_extensions()
-        .into_iter()
-        .map(|tracked| (tracked, 0))
-        .collect();
-
-    let progress_bar = ProgressBar::new(directory_entries.len() as u64);
-    progress_bar.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:..green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len}")?
-            .progress_chars("#>-"),
-    );
-
-    for entry in directory_entries {
-        let path = entry.path();
-        progress_bar.inc(1);
-
-        if path.is_file() {
-            if let Some(ext) = path.extension().and_then(|ext| ext.to_str()) {
-                if let Some((_tracked, line_count)) = composition_hashmap.iter_mut().find(|(&tracked , _)| tracked.ext == ext.to_string()) {
-                    let file = File::open(path)?;
-                    let reader = io::BufReader::new(file);
-
-                    *line_count += reader.lines().count()
+            if entry_path.is_dir() {
+                let dir_name = entry_path.file_name().unwrap().to_str().unwrap();
+                if ignored_directories.contains(&dir_name) {
+                    continue;
                 }
+                walk_directory(&entry_path, tracked_extensions, composition_hashmap, ignored_directories, ignored_files)?;
+            } else if entry_path.is_file() {
+                tally_file_lines(&entry_path, tracked_extensions, composition_hashmap, ignored_files)?;
             }
         }
     }
 
-    progress_bar.finish_and_clear();
-    Ok(composition_hashmap)
+    Ok(())
 }
 
-fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, config: &config::Config) {
+fn tally_file_lines(
+    path: &Path,
+    tracked_extensions: &Vec<Tracked>,
+    composition_hashmap: &mut HashMap<String, usize>,
+    ignored_files: &Vec<&'static str>,
+) -> Result<(), Box<dyn Error>> {
+
+    if let Some(file_name) = path.file_name().and_then(|name| name.to_str()) {
+        if ignored_files.contains(&file_name) {
+            return Ok(());
+        }
+    }
+
+    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+    for tracked in tracked_extensions {
+        if tracked.extensions.contains(&extension) {
+            let file = fs::File::open(path)?;
+            let reader = io::BufReader::new(file);
+
+            let line_count = reader.lines().count();
+            let count = composition_hashmap.entry(tracked.display.to_string()).or_insert(0);
+            *count += line_count;
+        }
+    }
+
+    Ok(())
+}
+
+fn display_composition(
+    tracked_extensions: &Vec<Tracked>,
+    composition_hashmap: &HashMap<String, usize>,
+    args: settings::Cli
+) {
     let total_lines: usize = composition_hashmap.values().sum();
 
     let mut sorted_entries: Vec<(&Tracked, usize, f32)> = composition_hashmap
-        .into_iter()
-        .map(|entry| {
-            let percentage: f32 = (entry.1 as f32) / (total_lines as f32) * 100.0;
-            (entry.0, entry.1, percentage)
+        .iter()
+        .filter_map(|(entry, count)| {
+            tracked_extensions
+                .iter()
+                .find(|tracked| tracked.display == *entry)
+                .map(|tracked| {
+                    let percentage = (*count as f32 / total_lines as f32) * 100.0;
+                    (tracked, *count, percentage)
+                })
         })
         .collect();
     sorted_entries.sort_by(|a, b| b.1.cmp(&a.1));
 
+
     let max_display_width = sorted_entries
         .iter()
-        .filter(|(_, line_count, _)| *line_count != 0)
-        .map(|(tracked, _, _)| tracked.display.len())
+        .map(|(tracked,_,_)| tracked.display.len())
         .max()
         .unwrap_or(10);
 
@@ -99,15 +152,11 @@ fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, co
         .unwrap_or(10);
 
     for (tracked, line_count, percentage) in sorted_entries {
-        if line_count == 0 {
-            continue;
-        }
-
-        let bar_width = (percentage / &config.minify).round() as usize;
-
+        // let bar_width = "█".repeat(bar)
+        let bar_width = (percentage * args.scale_bar).round() as usize;
         let mut bar = "█".repeat(bar_width);
 
-        if *config::get_colored_composition_bar() {
+        if args.color {
             let color = Color::TrueColor {
                 r: tracked.color.0,
                 g: tracked.color.1,
@@ -122,8 +171,8 @@ fn display_composition(composition_hashmap: HashMap<&'static Tracked, usize>, co
             line_count,
             percentage,
             bar,
-            width_display= max_display_width,
+            width_display = max_display_width,
             width_lines = max_lines_width,
-        );
+        )
     }
 }

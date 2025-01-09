@@ -31,7 +31,7 @@ pub struct Cli {
     pub command: Option<Commands>,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Commands {
     Investigate {
         #[arg(

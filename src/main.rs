@@ -1,11 +1,22 @@
 use std::process;
-use composition::settings;
+
+use clap::Parser;
+use composition::settings::cli::{Cli, Commands};
 
 fn main() {
-    let args = settings::build_args();
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(err) => {
+            eprintln!("{err}");
+            process::exit(1)
+        }
+    };
 
-    if let Err(err) = composition::run(args) {
-        eprintln!("ERROR: {err}");
-        process::exit(1);
+    println!("{:?}", cli);
+
+    match cli.command {
+        Some(Commands::List) => {},
+        Some(Commands::Investigate { extension }) => {}
+        None => {}
     }
 }

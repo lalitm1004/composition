@@ -10,13 +10,13 @@ fn main() {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(err) => {
-            eprintln!("Error parsing CLI arguments: {err}");
+            eprintln!("{err}");
             process::exit(1);
         }
     };
 
     if let Err(err) = run_command(cli) {
-        eprintln!("Error executing command: {err}");
+        eprintln!("{err}");
         process::exit(1);
     }
 }

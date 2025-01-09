@@ -1,7 +1,7 @@
 use std::process;
 
 use clap::Parser;
-use composition::settings::cli::{Cli, Commands};
+use composition::{display::list_tracked_extensions, settings::cli::{Cli, Commands}};
 
 fn main() {
     let cli = match Cli::try_parse() {
@@ -15,7 +15,7 @@ fn main() {
     println!("{:?}", cli);
 
     match cli.command {
-        Some(Commands::List) => {},
+        Some(Commands::List) => list_tracked_extensions(),
         Some(Commands::Investigate { extension }) => {}
         None => {}
     }

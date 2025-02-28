@@ -25,7 +25,7 @@ pub fn get_tracked_extensions() -> Vec<Tracked> {
 pub fn get_ignored_directories() -> Vec<&'static str> {
     vec![
         ".git", "__venv__", ".venv", "venv", "__pycache__", "target", "node_modules",
-        ".next", ".expo", ".idea", ".svelte-kit", ".github"
+        ".next", ".expo", ".idea", ".svelte-kit", ".github", ".rustup", ".config"
         // append more
     ]
 }

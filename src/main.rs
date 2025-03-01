@@ -1,5 +1,5 @@
-use std::process;
 use composition::settings;
+use std::process;
 
 fn main() {
     let args = settings::build_args();

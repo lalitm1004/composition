@@ -1,5 +1,8 @@
 use clap::Parser;
-use std::{path::{Path, PathBuf}, process};
+use std::{
+    path::{Path, PathBuf},
+    process,
+};
 
 pub fn get_tracked_extensions() -> Vec<Tracked> {
     vec![
@@ -24,9 +27,20 @@ pub fn get_tracked_extensions() -> Vec<Tracked> {
 
 pub fn get_ignored_directories() -> Vec<&'static str> {
     vec![
-        ".git", "__venv__", ".venv", "venv", "__pycache__", "target", "node_modules",
-        ".next", ".expo", ".idea", ".svelte-kit", ".github", ".rustup", ".config"
-        // append more
+        ".git",
+        "__venv__",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "target",
+        "node_modules",
+        ".next",
+        ".expo",
+        ".idea",
+        ".svelte-kit",
+        ".github",
+        ".rustup",
+        ".config", // append more
     ]
 }
 
@@ -45,13 +59,13 @@ pub struct Tracked {
 }
 
 impl Tracked {
-    fn new(
-        display: &'static str,
-        extensions: Vec<&'static str>,
-        color: &'static str
-    ) -> Self {
+    fn new(display: &'static str, extensions: Vec<&'static str>, color: &'static str) -> Self {
         let color = Self::hex_to_rgb(color);
-        Tracked { display, extensions, color }
+        Tracked {
+            display,
+            extensions,
+            color,
+        }
     }
 
     fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
@@ -116,7 +130,6 @@ fn parse_path(arg: &str) -> Result<PathBuf, String> {
 }
 
 fn parse_scale_bar(arg: &str) -> Result<f32, String> {
-    arg.parse::<f32>().map_err(|_| {
-        format!("must be a valid floating-point value")
-    })
+    arg.parse::<f32>()
+        .map_err(|_| format!("must be a valid floating-point value"))
 }

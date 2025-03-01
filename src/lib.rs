@@ -1,18 +1,18 @@
+use colored::*;
+use settings::Tracked;
 use std::{
-    fs,
-    thread,
-    path::Path,
-    error::Error,
-    time::Duration,
-    io::{self, BufRead, Write},
     collections::HashMap,
+    error::Error,
+    fs,
+    io::{self, BufRead, Write},
+    path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    thread,
+    time::Duration,
 };
-use colored::*;
-use settings::Tracked;
 
 pub mod settings;
 
@@ -53,11 +53,7 @@ pub fn run(args: settings::Cli) -> Result<(), Box<dyn Error>> {
     spinner_running.store(false, Ordering::SeqCst);
     spinner_handle.join().unwrap();
 
-    display_composition(
-        &tracked_extensions,
-        &composition_hashmap,
-        args,
-    );
+    display_composition(&tracked_extensions, &composition_hashmap, args);
     Ok(())
 }
 
@@ -68,7 +64,6 @@ fn walk_directory(
     ignored_directories: &Vec<&'static str>,
     ignored_files: &Vec<&'static str>,
 ) -> Result<(), Box<dyn Error>> {
-
     if path.is_dir() {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
@@ -79,9 +74,20 @@ fn walk_directory(
                 if ignored_directories.contains(&dir_name) {
                     continue;
                 }
-                walk_directory(&entry_path, tracked_extensions, composition_hashmap, ignored_directories, ignored_files)?;
+                walk_directory(
+                    &entry_path,
+                    tracked_extensions,
+                    composition_hashmap,
+                    ignored_directories,
+                    ignored_files,
+                )?;
             } else if entry_path.is_file() {
-                tally_file_lines(&entry_path, tracked_extensions, composition_hashmap, ignored_files)?;
+                tally_file_lines(
+                    &entry_path,
+                    tracked_extensions,
+                    composition_hashmap,
+                    ignored_files,
+                )?;
             }
         }
     }
@@ -95,7 +101,6 @@ fn tally_file_lines(
     composition_hashmap: &mut HashMap<String, usize>,
     ignored_files: &Vec<&'static str>,
 ) -> Result<(), Box<dyn Error>> {
-
     if let Some(file_name) = path.file_name().and_then(|name| name.to_str()) {
         if ignored_files.contains(&file_name) {
             return Ok(());
@@ -109,7 +114,9 @@ fn tally_file_lines(
             let reader = io::BufReader::new(file);
 
             let line_count = reader.lines().count();
-            let count = composition_hashmap.entry(tracked.display.to_string()).or_insert(0);
+            let count = composition_hashmap
+                .entry(tracked.display.to_string())
+                .or_insert(0);
             *count += line_count;
         }
     }
@@ -120,7 +127,7 @@ fn tally_file_lines(
 fn display_composition(
     tracked_extensions: &Vec<Tracked>,
     composition_hashmap: &HashMap<String, usize>,
-    args: settings::Cli
+    args: settings::Cli,
 ) {
     let total_lines: usize = composition_hashmap.values().sum();
 
@@ -138,10 +145,9 @@ fn display_composition(
         .collect();
     sorted_entries.sort_by(|a, b| b.1.cmp(&a.1));
 
-
     let max_display_width = sorted_entries
         .iter()
-        .map(|(tracked,_,_)| tracked.display.len())
+        .map(|(tracked, _, _)| tracked.display.len())
         .max()
         .unwrap_or(10);
 

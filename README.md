@@ -5,7 +5,7 @@ Composition is a simple CLI tool that helps you understand your codebase better 
 - **Total Lines by Language:** Know exactly how many lines you've written per language.
 - **Easy Visualization:** Easily wrap your head around the percentage contribution of each language via the handy contribution bar.
 - **Fully customizable:** Add file extensions you want to track, ignore directories like `.git` and `node_modules` and whatever you choose.
-- **Invesitgate Languages:** Know exactly where the files of a certain language lie using `composition investigate`
+- **Investigate Languages:** Know exactly where the files of a certain language lie using `composition investigate`
 
 ## Example
 - composition

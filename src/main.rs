@@ -1,15 +1,9 @@
 use clap::Parser;
-use composition::app_context::{AppContext, cli::Cli};
+use composition::context::{AppContext, cli::Cli};
 
 fn main() {
     let cli = Cli::parse();
-    let app_context = match AppContext::from_cli(cli) {
-        Ok(ctx) => ctx,
-        Err(_) => {
-            eprintln!("Failed to create app context");
-            std::process::exit(1);
-        }
-    };
+    let app_context = AppContext::from_cli(cli);
 
     println!("=== App Context ===");
     println!("Path: {}", app_context.path.display());

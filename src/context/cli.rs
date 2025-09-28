@@ -32,27 +32,6 @@ pub struct Cli {
 
     #[arg(long, help = "Override ignore_empty_lines config setting")]
     pub ignore_empty_lines: Option<bool>,
-
-    #[arg(
-        long,
-        help = "Add ignored directories (appends to config)",
-        value_delimiter = ','
-    )]
-    pub ignored_directories: Vec<String>,
-
-    #[arg(
-        long,
-        help = "Add ignored files (appends to config)",
-        value_delimiter = ','
-    )]
-    pub ignored_files: Vec<String>,
-
-    #[arg(
-        long,
-        help = "Add excluded patterns (appends to config)",
-        value_delimiter = ','
-    )]
-    pub excluded_patterns: Vec<String>,
 }
 
 fn parse_path(arg: &str) -> Result<PathBuf, String> {

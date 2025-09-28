@@ -1,4 +1,6 @@
 # general settings
+respect_gitignore = true
+use_color = false
 ignore_dotfolders = true
 ignore_dotfiles = true
 ignore_empty_lines = true
@@ -7,20 +9,15 @@ ignore_empty_lines = true
 ignored_directories = [
     "node_modules",
     "target",
-    ".git",
-    ".venv",
     "__venv__",
     "__pycache__"
 ]
 
 # files to ignore explicitly
-ignored_files = [
-    ".env",
-    "config.toml"
-]
+ignored_files = []
 
 # regex patterns — if a line matches any, it is ignored
-exclude_patterns = [
+excluded_patterns = [
     "^\\s*//",        # C-style single-line comments
     "^\\s*#",         # Python/Bash comments
     "\\bTODO\\b",     # Any line containing 'TODO'

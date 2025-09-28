@@ -1,9 +1,9 @@
+mod default;
+
 use dirs;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, path::Path};
-
-mod default;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -43,6 +43,8 @@ pub struct Tracked {
     pub display: String,
     pub extensions: Vec<String>,
     pub color: Option<String>,
+
+    #[serde(default)]
     pub excluded_patterns: Vec<String>,
 
     #[serde(skip)]

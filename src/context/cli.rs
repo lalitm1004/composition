@@ -5,16 +5,20 @@ use std::path::{Path, PathBuf};
 #[command(author = "lalitm1004")]
 pub struct Cli {
     #[arg(
-        default_value=".",
-        value_parser=parse_path
+        default_value = ".",
+        value_parser = parse_path,
+        value_name = "PATH",
+        help = "Path to the directory of file to process"
     )]
     pub path: PathBuf,
 
     #[arg(
         long,
-        global=true,
-        default_value_t=1.0,
-        value_parser=parse_scale_bar
+        global = true,
+        default_value_t = 1.0,
+        value_parser = parse_scale_bar,
+        value_name = "FLOAT",
+        help = "Scale factor for the contribution bar"
     )]
     pub scale_bar: f32,
 

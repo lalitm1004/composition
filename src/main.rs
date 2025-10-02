@@ -88,6 +88,7 @@ fn main() {
     println!("{:?}", app_context.config.tracked);
 
     let entries = get_all_entries(&app_context);
+    println!("{}", entries.len());
     for e in entries {
         println!("{:?}", e);
     }

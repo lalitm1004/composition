@@ -1,4 +1,5 @@
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
+use rayon::prelude::*;
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
@@ -24,159 +25,216 @@ pub fn get_all_entries(app_context: &AppContext) -> Vec<DirEntry> {
         .cloned()
         .collect();
 
-    let mut gitignore_cache: HashMap<PathBuf, Gitignore> = HashMap::new();
-
-    // preload root gitignore with canonical path as key
-    if app_context.config.respect_gitignore {
-        let canonical_root = app_context
-            .path
-            .canonicalize()
-            .unwrap_or_else(|_| app_context.path.clone());
-
-        if let Ok(gitignore) = build_gitignore(&canonical_root) {
-            gitignore_cache.insert(canonical_root.clone(), gitignore);
-        }
-    }
-
-    WalkDir::new(&app_context.path)
-        .follow_links(false)
-        .into_iter()
-        .filter_entry(|e| {
-            filter_entry(
-                e,
-                app_context,
-                &tracked_extensions,
-                &ignored_directories,
-                &ignored_files,
-                &mut gitignore_cache,
-            )
-        })
-        .filter_map(Result::ok)
-        .filter(|dir_entry| dir_entry.file_type().is_file())
-        .collect()
-}
-
-fn filter_entry(
-    entry: &DirEntry,
-    app_context: &AppContext,
-    tracked_extensions: &HashSet<String>,
-    ignored_directories: &HashSet<String>,
-    ignored_files: &HashSet<String>,
-    gitignore_cache: &mut HashMap<PathBuf, Gitignore>,
-) -> bool {
-    let path = entry.path();
-    let file_name = entry.file_name().to_string_lossy();
-
-    let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    // canonicalize root once
     let canonical_root = app_context
         .path
         .canonicalize()
         .unwrap_or_else(|_| app_context.path.clone());
 
-    // always allow root dir
-    if canonical_path == canonical_root {
+    // build gitignore cache first
+    let gitignore_cache = if app_context.config.respect_gitignore {
+        build_gitignore_cache(
+            &app_context.path,
+            &canonical_root,
+            app_context.config.ignore_dotfolders,
+            &ignored_directories,
+        )
+    } else {
+        HashMap::new()
+    };
+
+    // collect all entries (sequential)
+    let all_entries = collect_directory_entries(
+        &app_context.path,
+        app_context.config.ignore_dotfolders,
+        &ignored_directories,
+    );
+
+    // filter entries in parallel
+    filter_entries_parallel(
+        all_entries,
+        app_context,
+        &canonical_root,
+        &tracked_extensions,
+        &ignored_files,
+        &gitignore_cache,
+    )
+}
+
+fn should_traverse_directory(
+    entry: &DirEntry,
+    root: &Path,
+    ignore_dotfolders: bool,
+    ignored_directories: &HashSet<String>,
+) -> bool {
+    // check directory ignore settings
+    if !entry.file_type().is_dir() {
         return true;
     }
 
-    // handle dirs
-    if entry.file_type().is_dir() {
-        if app_context.config.ignore_dotfolders && file_name.starts_with('.') {
-            return false;
-        }
-
-        if ignored_directories.contains(file_name.as_ref()) {
-            return false;
-        }
-
-        // check if directory is ignored by git
-        if app_context.config.respect_gitignore {
-            if is_ignored_by_git(entry, &canonical_root, gitignore_cache) {
-                return false;
-            }
-        }
-
-        // load gitignore for this directory
-        if app_context.config.respect_gitignore && !gitignore_cache.contains_key(&canonical_path) {
-            if let Ok(gitignore) = build_gitignore(&canonical_path) {
-                gitignore_cache.insert(canonical_path.clone(), gitignore);
-            }
-        }
-
-        // allow directory traversal
+    if entry.path() == root {
         return true;
     }
 
-    // handle files
-    if entry.file_type().is_file() {
-        if app_context.config.ignore_dotfiles && file_name.starts_with('.') {
-            return false;
-        }
+    let file_name = entry.file_name().to_string_lossy();
 
-        if ignored_files.contains(file_name.as_ref()) {
-            return false;
-        }
-
-        // check extension
-        let has_tracked_extension = match path.extension() {
-            Some(ext) => {
-                let ext_lower = ext.to_string_lossy().to_lowercase();
-                tracked_extensions.contains(&ext_lower)
-            }
-            None => false,
-        };
-
-        if !has_tracked_extension {
-            return false;
-        }
-
-        // check gitignore
-        if app_context.config.respect_gitignore {
-            // make sure parent directory's gitignore is loaded
-            if let Some(parent) = canonical_path.parent() {
-                let canonical_parent = parent.to_path_buf();
-                if !gitignore_cache.contains_key(&canonical_parent) {
-                    if let Ok(gitignore) = build_gitignore(&canonical_parent) {
-                        gitignore_cache.insert(canonical_parent, gitignore);
-                    }
-                }
-            }
-
-            if is_ignored_by_git(entry, &canonical_root, gitignore_cache) {
-                return false;
-            }
-        }
-
-        return true;
+    if ignore_dotfolders && file_name.starts_with('.') {
+        return false;
     }
 
-    // Not a regular file or directory (symlink, etc.)
-    false
+    if ignored_directories.contains(file_name.as_ref()) {
+        return false;
+    }
+
+    true
+}
+
+fn collect_directory_entries(
+    root: &Path,
+    ignore_dotfolders: bool,
+    ignored_directories: &HashSet<String>,
+) -> Vec<DirEntry> {
+    WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|e| {
+            should_traverse_directory(e, root, ignore_dotfolders, ignored_directories)
+        })
+        .filter_map(Result::ok)
+        .collect()
+}
+
+fn filter_entries_parallel(
+    entries: Vec<DirEntry>,
+    app_context: &AppContext,
+    canonical_root: &Path,
+    tracked_extensions: &HashSet<String>,
+    ignored_files: &HashSet<String>,
+    gitignore_cache: &HashMap<PathBuf, Gitignore>,
+) -> Vec<DirEntry> {
+    entries
+        .into_par_iter()
+        .filter(|entry| {
+            entry.file_type().is_file()
+                && filter_file(
+                    entry,
+                    app_context,
+                    canonical_root,
+                    tracked_extensions,
+                    ignored_files,
+                    gitignore_cache,
+                )
+        })
+        .collect()
+}
+
+fn build_gitignore_cache(
+    root: &Path,
+    canonical_root: &Path,
+    ignore_dotfolders: bool,
+    ignored_directories: &HashSet<String>,
+) -> HashMap<PathBuf, Gitignore> {
+    let mut cache = HashMap::new();
+
+    // root gitignore
+    if let Ok(gitignore) = build_gitignore(root) {
+        cache.insert(canonical_root.to_path_buf(), gitignore);
+    }
+
+    // walk and build cache for all directories
+    let directories = collect_directory_entries(root, ignore_dotfolders, ignored_directories)
+        .into_iter()
+        .filter(|e| e.file_type().is_dir() && e.path() != root);
+
+    for dir_entry in directories {
+        // infer canonical path by appending relative path to canonical root
+        if let Some(canonical_dir) = infer_canonical_path(dir_entry.path(), root, canonical_root) {
+            if let Ok(gitignore) = build_gitignore(dir_entry.path()) {
+                cache.insert(canonical_dir, gitignore);
+            }
+        }
+    }
+
+    cache
+}
+
+fn infer_canonical_path(path: &Path, root: &Path, canonical_root: &Path) -> Option<PathBuf> {
+    path.strip_prefix(root)
+        .ok()
+        .map(|relative| canonical_root.join(relative))
+}
+
+fn filter_file(
+    entry: &DirEntry,
+    app_context: &AppContext,
+    canonical_root: &Path,
+    tracked_extensions: &HashSet<String>,
+    ignored_files: &HashSet<String>,
+    gitignore_cache: &HashMap<PathBuf, Gitignore>,
+) -> bool {
+    let file_name = entry.file_name().to_string_lossy();
+
+    if app_context.config.ignore_dotfiles && file_name.starts_with('.') {
+        return false;
+    }
+
+    if ignored_files.contains(file_name.as_ref()) {
+        return false;
+    }
+
+    // check extension
+    if !has_tracked_extension(entry.path(), tracked_extensions) {
+        return false;
+    }
+
+    // check gitignore
+    if app_context.config.respect_gitignore {
+        if is_ignored_by_git(entry, &app_context.path, canonical_root, gitignore_cache) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn has_tracked_extension(path: &Path, tracked_extensions: &HashSet<String>) -> bool {
+    path.extension()
+        .map(|ext| tracked_extensions.contains(&ext.to_string_lossy().to_lowercase()))
+        .unwrap_or(false)
 }
 
 fn is_ignored_by_git(
     entry: &DirEntry,
+    root: &Path,
     canonical_root: &Path,
     gitignore_cache: &HashMap<PathBuf, Gitignore>,
 ) -> bool {
-    let path = entry.path();
-    let is_dir = entry.file_type().is_dir();
-
-    // canonicalize the entry path
-    let canonical_path = match path.canonicalize() {
-        Ok(p) => p,
-        Err(_) => return false, // ignore if cant
+    // infer canonical_path
+    let canonical_path = match infer_canonical_path(entry.path(), root, canonical_root) {
+        Some(path) => path,
+        None => return false,
     };
 
-    // collect gitignored from root to current path
-    let mut gitignore_stack: Vec<(&Path, &Gitignore)> = Vec::new();
+    let is_dir = entry.file_type().is_dir();
 
-    // for files, we need to check gitignores up to and including the parent directory
-    // for directories, we check up to the directory itself
+    // for files, check gitignores up to and including the parent directory
+    // for directories, check up to the directory itself
     let check_path = if is_dir {
         &canonical_path
     } else {
         canonical_path.parent().unwrap_or(&canonical_path)
     };
+
+    let gitignore_stack = build_gitignore_stack(check_path, canonical_root, gitignore_cache);
+    apply_gitignore_rules(&canonical_path, is_dir, &gitignore_stack)
+}
+
+fn build_gitignore_stack<'a>(
+    check_path: &'a Path,
+    canonical_root: &Path,
+    gitignore_cache: &'a HashMap<PathBuf, Gitignore>,
+) -> Vec<(&'a Path, &'a Gitignore)> {
+    let mut stack = Vec::new();
 
     for ancestor in check_path.ancestors() {
         // stop if above root
@@ -185,13 +243,20 @@ fn is_ignored_by_git(
         }
 
         if let Some(gitignore) = gitignore_cache.get(ancestor) {
-            gitignore_stack.push((ancestor, gitignore));
+            stack.push((ancestor.as_ref(), gitignore));
         }
     }
 
     // reverse to check from parent to child
-    gitignore_stack.reverse();
+    stack.reverse();
+    stack
+}
 
+fn apply_gitignore_rules(
+    canonical_path: &Path,
+    is_dir: bool,
+    gitignore_stack: &[(&Path, &Gitignore)],
+) -> bool {
     let mut final_decision = None;
 
     for (gitignore_dir, gitignore) in gitignore_stack {

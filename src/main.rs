@@ -1,27 +1,31 @@
 use clap::Parser;
+use colored::Colorize;
+
 use composition::{
     context::{AppContext, cli::Cli},
     core::{get_all_entries, get_composition},
+    display::{display_composition, spinner},
 };
 
 fn main() {
     let cli = Cli::parse();
     let app_context = AppContext::from_cli(cli);
+    if !app_context.config_loaded {
+        println!(
+            "{}",
+            "Warning: Missing or invalid config.toml file. Using default settings."
+                .yellow()
+                .bold()
+        );
+    }
 
-    println!("=== App Context ===");
-    println!("Path: {}", app_context.path.display());
-    println!("Scale Bar: {}", app_context.scale_bar);
-    println!("Config Loaded from File: {}", app_context.config_loaded);
-    println!();
-
-    println!("{:?}", app_context.config.tracked);
-
+    spinner::start("Walking directory");
     let entries = get_all_entries(&app_context);
-    println!("{}", entries.len());
-    // for e in &entries {
-    //     println!("{:?}", e);
-    // }
+    spinner::end();
 
-    let composition = get_composition(&app_context, entries);
-    println!("{:?}", composition);
+    spinner::start("Calculating composition");
+    let mut composition = get_composition(&app_context, entries);
+    spinner::end();
+
+    display_composition(&app_context, &mut composition);
 }

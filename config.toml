@@ -19,7 +19,7 @@ ignored_files = []
 # regex patterns — if a line matches any, it is ignored
 excluded_patterns = [
     # skip lines starting with //
-    # "^\\s*//",
+    "^\\s*//",
 
     # skip lines starting with #
     "^\\s*#",
@@ -32,7 +32,6 @@ excluded_patterns = [
 [[tracked]]
 display = "Rust"
 extensions = ["rs"]
-# excluded_patterns = ["^\\s*//",]
 
 [[tracked]]
 display = "Python"

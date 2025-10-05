@@ -8,6 +8,7 @@ use crate::context::{AppContext, config::Tracked};
 pub struct CompositionEntry {
     pub tracked: Tracked,
     pub line_count: usize,
+    pub percentage: f32,
 }
 
 pub fn get_composition(app_context: &AppContext, entries: Vec<DirEntry>) -> Vec<CompositionEntry> {
@@ -60,6 +61,7 @@ pub fn get_composition(app_context: &AppContext, entries: Vec<DirEntry>) -> Vec<
                     compiled_excluded_patterns: tracked.compiled_excluded_patterns.clone(),
                 },
                 line_count: total_lines,
+                percentage: 0.0,
             })
         })
         .collect();

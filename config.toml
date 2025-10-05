@@ -18,17 +18,21 @@ ignored_files = []
 
 # regex patterns — if a line matches any, it is ignored
 excluded_patterns = [
-    "^\\s*//",        # C-style single-line comments
-    "^\\s*#",         # Python/Bash comments
-    "\\bTODO\\b",     # Any line containing 'TODO'
-    "^\\s*\\{",       # Lines starting with '{'
-    "^\\s*\\}",       # Lines starting with '}'
+    # skip lines starting with //
+    # "^\\s*//",
+
+    # skip lines starting with #
+    "^\\s*#",
+
+    # skip lines containing only braces, brackets, parentheses, commas, or semicolons
+    "^\\s*[\\{\\}\\[\\]\\(\\),;]+\\s*$"
 ]
 
 # list of tracked languages
 [[tracked]]
 display = "Rust"
 extensions = ["rs"]
+# excluded_patterns = ["^\\s*//",]
 
 [[tracked]]
 display = "Python"

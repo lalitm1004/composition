@@ -55,7 +55,7 @@ pub fn display_composition(
             entry.line_count,
             entry.percentage,
             bar,
-            width_display = max_display_width,
+            width_display = max_display_width + 1,
             width_lines = max_lines_width,
         );
     }

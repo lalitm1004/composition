@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
+use std::time::Instant;
 
 use composition::{
     context::{AppContext, cli::Cli},
@@ -19,13 +20,28 @@ fn main() {
         );
     }
 
+    let start = Instant::now();
+
     spinner::start("Walking directory");
     let entries = get_all_entries(&app_context);
+    let entries_len = entries.len();
     spinner::end();
 
     spinner::start("Calculating composition");
     let mut composition = get_composition(&app_context, entries);
     spinner::end();
+
+    let elapsed = start.elapsed();
+
+    println!(
+        "{}",
+        format!(
+            "Parsed {} files in {:.6} seconds",
+            entries_len,
+            elapsed.as_secs_f64()
+        )
+        .bold()
+    );
 
     display_composition(&app_context, &mut composition);
 }

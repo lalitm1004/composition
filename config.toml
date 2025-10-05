@@ -10,7 +10,7 @@ ignored_directories = [
   "__pycache__",
 ]
 ignore_dotfiles = true
-ignored_files = []
+ignored_files = ["package-lock.json"]
 ignore_empty_lines = true
 
 excluded_patterns = [

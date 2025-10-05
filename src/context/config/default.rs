@@ -32,7 +32,7 @@ pub fn ignored_directories() -> Vec<String> {
 }
 
 pub fn ignored_files() -> Vec<String> {
-    vec![]
+    vec!["package-lock.json".into()]
 }
 
 pub fn excluded_patterns() -> Vec<String> {

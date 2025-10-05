@@ -75,12 +75,21 @@ impl Config {
         config.compiled_excluded_patterns = compile_regexes(&config.excluded_patterns)?;
 
         let mut seen_displays = HashSet::new();
+        let color_regex = Regex::new(r"^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
+            .expect("hardcoded regex should compile");
+
         for tracked in &mut config.tracked {
             // ensure all display values are unique
             if !seen_displays.insert(tracked.display.clone()) {
                 return Err(ConfigLoadError::DuplicateTrackedDisplay(
                     tracked.display.clone(),
                 ));
+            }
+
+            if let Some(color) = &tracked.color {
+                if !color_regex.is_match(color) {
+                    return Err(ConfigLoadError::InvalidColorValue(color.clone()));
+                }
             }
 
             // compile all language specific regex patterns
@@ -135,6 +144,7 @@ fn compile_regexes(excluded_patterns: &Vec<String>) -> Result<Vec<Regex>, Config
 pub enum ConfigLoadError {
     FileReadFailed,
     TomlParseFailed,
+    InvalidColorValue(String),
     RegexCompileFailed(String),
     DuplicateTrackedDisplay(String),
 }
@@ -147,6 +157,9 @@ impl std::fmt::Display for ConfigLoadError {
             ConfigLoadError::FileReadFailed => write!(f, "failed to read the config file"),
             ConfigLoadError::TomlParseFailed => {
                 write!(f, "failed to parse the config file as TOML")
+            }
+            ConfigLoadError::InvalidColorValue(color) => {
+                write!(f, "invalid color value: '{}'", color)
             }
             ConfigLoadError::RegexCompileFailed(pattern) => {
                 write!(f, "failed to compile regex pattern: '{}'", pattern)

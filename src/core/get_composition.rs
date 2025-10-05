@@ -11,7 +11,7 @@ pub struct CompositionEntry {
 }
 
 pub fn get_composition(app_context: &AppContext, entries: Vec<DirEntry>) -> Vec<CompositionEntry> {
-    // Process all files in parallel and count lines per extension
+    // process files in parallel
     let line_counts_by_extension: HashMap<String, usize> = entries
         .par_iter()
         .filter_map(|entry| {
@@ -36,7 +36,6 @@ pub fn get_composition(app_context: &AppContext, entries: Vec<DirEntry>) -> Vec<
             },
         );
 
-    // Map the line counts to tracked languages
     let composition: Vec<CompositionEntry> = app_context
         .config
         .tracked
@@ -71,7 +70,6 @@ pub fn get_composition(app_context: &AppContext, entries: Vec<DirEntry>) -> Vec<
 fn count_lines(path: &std::path::Path, app_context: &AppContext, ext: &str) -> Option<usize> {
     let content = fs::read_to_string(path).ok()?;
 
-    // Find the tracked config for this extension to get language-specific patterns
     let tracked = app_context
         .config
         .tracked
@@ -81,19 +79,18 @@ fn count_lines(path: &std::path::Path, app_context: &AppContext, ext: &str) -> O
     let count = content
         .lines()
         .filter(|line| {
-            // Check if we should ignore empty lines
             if app_context.config.ignore_empty_lines && line.trim().is_empty() {
                 return false;
             }
 
-            // Check global excluded patterns
+            // global excluded patterns
             for pattern in &app_context.config.compiled_excluded_patterns {
                 if pattern.is_match(line) {
                     return false;
                 }
             }
 
-            // Check language-specific excluded patterns
+            // language specific excluded patters
             for pattern in &tracked.compiled_excluded_patterns {
                 if pattern.is_match(line) {
                     return false;

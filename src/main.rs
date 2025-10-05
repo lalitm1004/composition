@@ -2,7 +2,7 @@ use clap::Parser;
 use colored::Colorize;
 use std::time::Instant;
 
-use composition::{
+use composition_cli::{
     context::{AppContext, cli::Cli},
     core::{get_all_entries, get_composition},
     display::{display_composition, spinner},
@@ -22,12 +22,12 @@ fn main() {
 
     let start = Instant::now();
 
-    spinner::start("Walking directory");
+    spinner::start("Walking directory...");
     let entries = get_all_entries(&app_context);
     let entries_len = entries.len();
     spinner::end();
 
-    spinner::start("Calculating composition");
+    spinner::start("Calculating composition...");
     let mut composition = get_composition(&app_context, entries);
     spinner::end();
 

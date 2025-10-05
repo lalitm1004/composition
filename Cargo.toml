@@ -1,7 +1,16 @@
 [package]
-name = "composition"
+name = "composition-cli"
 version = "2.0.2"
 edition = "2024"
+authors = ["lalitm1004 <lalitm1004@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/lalitm1004/composition"
+keywords = ["cli", "composition", "code-analysis"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "composition"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }

@@ -139,7 +139,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "composition"
+name = "composition-cli"
 version = "2.0.2"
 dependencies = [
  "clap",

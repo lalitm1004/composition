@@ -35,8 +35,7 @@ pub fn display_composition(
         }
 
         // set bar width and color
-        // divide by 2 to set max_width to 50 instead of 100
-        let bar_width = (entry.percentage * app_context.scale_bar / 2.0).round() as usize;
+        let bar_width = (entry.percentage * app_context.scale_bar).round() as usize;
         let bar = "█".repeat(bar_width);
         let bar = match (app_context.config.use_color, &entry.tracked.color) {
             (true, Some(hex)) => {

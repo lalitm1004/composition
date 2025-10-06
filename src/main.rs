@@ -1,8 +1,12 @@
+mod context;
+mod core;
+mod display;
+
 use clap::Parser;
 use colored::Colorize;
 use std::time::Instant;
 
-use composition_cli::{
+use crate::{
     context::{AppContext, cli::Cli},
     core::{get_all_entries, get_composition},
     display::{display_composition, spinner},

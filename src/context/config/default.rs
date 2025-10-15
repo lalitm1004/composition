@@ -371,7 +371,7 @@ pub fn tracked() -> Vec<Tracked> {
 
 // tests to ensure default values are valid
 #[cfg(test)]
-mod tests {
+mod default_config_tests {
     use crate::context::config::Config;
 
     use std::collections::HashSet;

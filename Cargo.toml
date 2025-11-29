@@ -1,7 +1,7 @@
 [package]
 name = "composition-cli"
 description = "composition is a modular lines-of-code CLI tool to analyze and display code composition in directories"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2024"
 authors = ["lalitm1004 <lalitm1004@gmail.com>"]
 readme = "README.md"

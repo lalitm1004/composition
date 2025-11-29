@@ -21,22 +21,22 @@ pub struct Cli {
     )]
     pub scale_bar: f32,
 
-    #[arg(long, help = "Override use_color config setting")]
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Override use_color config setting")]
     pub use_color: Option<bool>,
 
-    #[arg(long, short, alias = "log", action = clap::ArgAction::SetTrue, help = "Enable logarithmic scale for the bar")]
+    #[arg(long, alias = "log", action = clap::ArgAction::SetTrue, help = "Enable logarithmic scale for the bar")]
     pub log_scale: Option<bool>,
 
-    #[arg(long, help = "Override respect_gitignore config setting")]
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Override respect_gitignore config setting")]
     pub respect_gitignore: Option<bool>,
 
-    #[arg(long, help = "Override ignore_dotfolders config setting")]
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Override ignore_dotfolders config setting")]
     pub ignore_dotfolders: Option<bool>,
 
-    #[arg(long, help = "Override ignore_dotfiles config setting")]
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Override ignore_dotfiles config setting")]
     pub ignore_dotfiles: Option<bool>,
 
-    #[arg(long, help = "Override ignore_empty_lines config setting")]
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Override ignore_empty_lines config setting")]
     pub ignore_empty_lines: Option<bool>,
 }
 

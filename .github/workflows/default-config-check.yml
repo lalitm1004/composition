@@ -8,7 +8,6 @@ on:
 
 jobs:
   default-config-check:
-    name: Ensure Default Config Builds Successfully
     runs-on: ubuntu-latest
 
     steps:

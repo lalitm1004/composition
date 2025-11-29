@@ -29,13 +29,26 @@ pub fn display_composition(
         .max()
         .unwrap_or(10) as usize;
 
+    let max_percentage = composition_entries
+        .iter()
+        .map(|e| e.percentage)
+        .fold(0_f32, f32::max);
+
     for entry in composition_entries {
         if entry.line_count == 0 {
             continue;
         }
 
         // set bar width and color
-        let bar_width = (entry.percentage * app_context.scale_bar).round() as usize;
+        let raw = if app_context.config.log_scale {
+            let log_value = (entry.percentage + 1.0).log10();
+            let log_max = (max_percentage + 1.0).log10();
+            log_value / log_max
+        } else {
+            entry.percentage / 100.0
+        };
+
+        let bar_width = (raw * app_context.scale_bar * 100.0).round() as usize;
         let bar = "█".repeat(bar_width);
         let bar = match (app_context.config.use_color, &entry.tracked.color) {
             (true, Some(hex)) => {

@@ -4,6 +4,10 @@ pub fn use_color() -> bool {
     false
 }
 
+pub fn log_scale() -> bool {
+    false
+}
+
 pub fn respect_gitignore() -> bool {
     true
 }

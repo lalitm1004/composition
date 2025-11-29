@@ -10,6 +10,9 @@ pub struct Config {
     #[serde(default = "default::use_color")]
     pub use_color: bool,
 
+    #[serde(default = "default::log_scale")]
+    pub log_scale: bool,
+
     #[serde(default = "default::respect_gitignore")]
     pub respect_gitignore: bool,
 
@@ -104,6 +107,7 @@ impl Default for Config {
     fn default() -> Self {
         let mut config = Self {
             use_color: default::use_color(),
+            log_scale: default::log_scale(),
             respect_gitignore: default::respect_gitignore(),
             ignore_dotfolders: default::ignore_dotfolders(),
             ignored_directories: default::ignored_directories(),

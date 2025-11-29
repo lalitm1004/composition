@@ -30,9 +30,12 @@ impl AppContext {
     }
 
     fn apply_cli_overrides(config: &mut Config, cli: &Cli) {
-        // override boolean flags
         if let Some(use_color) = cli.use_color {
             config.use_color = use_color;
+        }
+
+        if let Some(log_scale) = cli.log_scale {
+            config.log_scale = log_scale;
         }
 
         if let Some(respect_gitignore) = cli.respect_gitignore {

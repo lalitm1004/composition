@@ -57,6 +57,7 @@
 | `PATH`                 | `Optional<Path>`  | `Path('.')` | Path to the directory of files to process.    |
 | `--scale-bar`          | `Optional<float>` | `1.0`       | Scale factor for the contribution bar.        |
 | `--use-color`          | `Optional<bool>`  | *config**   | Override `use_color` config setting.          |
+| `--log-scale`          | `Optional<bool>`  | *config**   | Override `log_scale` config setting.          |
 | `--respect-gitignore`  | `Optional<bool>`  | *config**   | Override `respect_gitignore` config setting.  |
 | `--ignore-dotfolders`  | `Optional<bool>`  | *config**   | Override `ignore_dotfolders` config setting.  |
 | `--ignore-dotfiles`    | `Optional<bool>`  | *config**   | Override `ignore_dotfiles` config setting.    |
@@ -73,6 +74,7 @@
 | Field Name            | Type                       | Default Value                      | Description                                                                                                                                      |
 | --------------------- | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `use_color`           | `Optional<bool>`           | `false`                            | Enables colored output in the CLI                                                                                                                |
+| `log_scale`           | `Optional<bool>`           | `false`                            | Enables logarithmic scale for the contribution bar                                                                                                                |
 | `respect_gitignore`   | `Optional<bool>`           | `true`                             | Determines whether files/folders ignored by `.gitignore` should also be ignored by this tool                                                     |
 | `ignore_dotfolders`   | `Optional<bool>`           | `true`                             | If `true`, folders starting with `.` are ignored                                                                                                 |
 | `ignored_directories` | `Optional<Array[String]>`  | [Check here](#ignored_directories) | List of directories to explicitly ignore during analysis                                                                                         |
